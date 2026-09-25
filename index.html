@@ -8,31 +8,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- GOOGLE IDENTITY SERVICES SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <!-- FIREBASE SDK & CONFIGURATION -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
-
-      const firebaseConfig = {
-        apiKey: "AIzaSyD-nWO6fyyqJ5cCwsd4cW3BMOGmllLI4UE",
-        authDomain: "aisy-a4291.firebaseapp.com",
-        projectId: "aisy-a4291",
-        storageBucket: "aisy-a4291.firebasestorage.app",
-        messagingSenderId: "578304533212",
-        appId: "1:578304533212:web:ac2f3a4e7dd271c15eca19",
-        measurementId: "G-SBQ6P3G7SX"
-      };
-
-      // Inisialisasi Firebase & Analytics
-      const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
-
-      // Mengekspos ke window agar dapat diakses oleh skrip non-modul
-      window.firebaseApp = app;
-      window.firebaseAnalytics = analytics;
-    </script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
@@ -79,7 +54,7 @@
             <!-- 1. HALAMAN DASHBOARD (BERANDA) -->
             <div id="page-dashboard" class="animate-fade">
                 
-                <!-- TOP APP BAR / HEADER JAM -->
+                <!-- TOP APP BAR / HEADER JAM (HANYA MUNCUL DI BERANDA) -->
                 <header class="px-5 pt-4 pb-3 flex justify-center items-center glass-card-3d border-b border-white/5 z-20 shrink-0 sticky top-0">
                     <div class="text-center">
                         <p class="text-xs font-bold text-emerald-400 tracking-wider" id="live-world-clock">00:00:00</p>
@@ -202,10 +177,10 @@
                         <i class="fa-solid fa-triangle-exclamation"></i> Zona Berbahaya
                     </h4>
                     <p class="text-[11px] text-slate-400 leading-relaxed">
-                        Menghapus semua riwayat absen mingguan.
+                        Menghapus semua riwayat absen mingguan serta mengembalikan aplikasi ke pengaturan awal.
                     </p>
                     <button onclick="bukaModalReset()" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-rotate-right"></i> Reset Riwayat Absen
+                        <i class="fa-solid fa-rotate-right"></i> Reset Semua Data
                     </button>
                 </div>
             </div>
@@ -257,9 +232,9 @@
                     <i class="fa-solid fa-trash-can"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-white">Reset Riwayat Absen?</h3>
+                    <h3 class="font-bold text-base text-white">Reset Semua Data?</h3>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Tindakan ini akan menghapus seluruh riwayat absen. Akun Google Anda akan tetap terhubung.
+                        Tindakan ini akan menghapus seluruh riwayat absen dan mengembalikan aplikasi ke pengaturan awal.
                     </p>
                 </div>
                 <div class="flex space-x-2 pt-2">
@@ -274,7 +249,7 @@
     <!-- JAVASCRIPT UTAMA -->
     <script>
         // CLIENT ID GOOGLE - Dapatkan dari Google Cloud Console
-        const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+        const GOOGLE_CLIENT_ID = "229850114902-jgm3qj3f54r4vlb3s36edq0n7djvoqvi.apps.googleusercontent.com";
 
         function inisialisasiGoogleSDK() {
             if (window.google) {
@@ -688,17 +663,22 @@
         function tutupModalReset() {
             document.getElementById('modal-reset').classList.add('hidden');
         }
-
         function eksekusiResetData() {
-            localStorage.removeItem('databaseHarian');
+            localStorage.clear();
             state.databaseHarian = {};
             offsetMingguSaatIni = 0;
             
             tutupModalReset();
             perbaruiTampilan();
+            
+            // Reset Tampilan Profil
+            document.getElementById('user-name').innerText = "Masuk";
+            document.getElementById('user-email').innerText = "Masuk dengan Google, lebih seru!";
+            document.getElementById('user-avatar').innerHTML = `<i class="fa-solid fa-user text-xl text-slate-400"></i>`;
 
             pindahTab('dashboard');
-            kirimNotifikasi("Riwayat Direset", "Semua catatan riwayat absen berhasil dihapus.");
+            
+            kirimNotifikasi("Data Direset", "Semua riwayat dan data telah dikembalikan ke pengaturan awal.");
         }
     </script>
 </body>

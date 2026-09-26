@@ -246,6 +246,27 @@
 
     </div>
 
+    <!-- KONFIGURASI FIREBASE SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-nWO6fyyqJ5cCwsd4cW3BMOGmllLI4UE",
+            authDomain: "aisy-a4291.firebaseapp.com",
+            projectId: "aisy-a4291",
+            storageBucket: "aisy-a4291.firebasestorage.app",
+            messagingSenderId: "578304533212",
+            appId: "1:578304533212:web:a2cb24984ae1f7325eca19",
+            measurementId: "G-GB2QL00LXX"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        console.log("Firebase berhasil diinisialisasi untuk project: aisy-a4291");
+    </script>
+
     <!-- JAVASCRIPT UTAMA -->
     <script>
         const GOOGLE_CLIENT_ID = "229850114902-jgm3qj3f54r4vlb3s36edq0n7djvoqvi.apps.googleusercontent.com";
@@ -353,7 +374,6 @@
             }
         }
 
-        // PERBAIKAN: Mencegah mutasi objek Date secara langsung
         function dapatkanRentangMinggu(offsetMinggu = 0) {
             const daftarHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             let arr = [];
@@ -362,7 +382,6 @@
             let day = d.getDay();
             let diffToMonday = d.getDate() - (day === 0 ? 6 : day - 1) + (offsetMinggu * 7);
             
-            // Dibuat aman tanpa me-mutate d
             let mondayObj = new Date(d.getFullYear(), d.getMonth(), diffToMonday);
 
             for(let i = 0; i < 7; i++) {
@@ -428,7 +447,6 @@
                 const elClock = document.getElementById('live-world-clock');
                 if(elClock) elClock.innerText = jamSekarangStr;
 
-                // UPDATE TIMER REAL-TIME JIKA STATUS SEDANG AKTIF
                 let rentangHariIni = dapatkanRentangMinggu(0);
                 let idxHari = getIndexHariIni();
                 let isoToday = rentangHariIni[idxHari].isoDate;
@@ -500,7 +518,6 @@
                     dataTersimpan.timestampPulang = now.getTime();
                     dataTersimpan.statusAbsen = 'selesai';
 
-                    // Hitung durasi presisi dari timestamp epoch
                     let selisihDetik = Math.floor((dataTersimpan.timestampPulang - dataTersimpan.timestampMasuk) / 1000);
                     if (selisihDetik < 0) selisihDetik = 0;
 

@@ -246,10 +246,11 @@
 
     </div>
 
-    <!-- KONFIGURASI FIREBASE SDK -->
+    <!-- KONFIGURASI FIREBASE SDK TERINTEGRASI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD-nWO6fyyqJ5cCwsd4cW3BMOGmllLI4UE",
@@ -258,14 +259,23 @@
             storageBucket: "aisy-a4291.firebasestorage.app",
             messagingSenderId: "578304533212",
             appId: "1:578304533212:web:a2cb24984ae1f7325eca19",
-            measurementId: "G-GB2QL00LXX"
+            measurementId: "G-GB2QL00LXX",
+            databaseURL: "https://aisy-a4291-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
         try {
-            // Inisialisasi Firebase
+            // Inisialisasi Firebase App
             const app = initializeApp(firebaseConfig);
             const analytics = getAnalytics(app);
-            console.log("Firebase berhasil diinisialisasi.");
+
+            // Inisialisasi Realtime Database
+            const db = getDatabase(app);
+            window.firebaseDB = db;
+            window.dbRef = ref;
+            window.dbSet = set;
+            window.dbOnValue = onValue;
+
+            console.log("Firebase & Realtime Database berhasil diinisialisasi.");
 
             // Update Tanda Visual Integrasi Berhasil
             window.addEventListener('DOMContentLoaded', () => {
@@ -528,6 +538,13 @@
 
             state.databaseHarian[isoToday] = dataTersimpan;
             localStorage.setItem('databaseHarian', JSON.stringify(state.databaseHarian));
+
+            // SIMPAN DATA SECARA REALTIME KE FIREBASE
+            if (window.firebaseDB) {
+                window.dbSet(window.dbRef(window.firebaseDB, 'absenHarian/' + isoToday), dataTersimpan)
+                    .then(() => console.log("Berhasil tersimpan di Firebase Console!"))
+                    .catch((err) => console.error("Gagal simpan ke Firebase:", err));
+            }
             
             offsetMingguSaatIni = 0;
             perbaruiTampilan();

@@ -54,11 +54,11 @@
             <!-- 1. HALAMAN DASHBOARD (BERANDA) -->
             <div id="page-dashboard" class="animate-fade">
                 
-                <!-- TOP APP BAR / HEADER JAM (HANYA MUNCUL DI BERANDA) -->
+                <!-- TOP APP BAR / HEADER JAM -->
                 <header class="px-5 pt-4 pb-3 flex justify-center items-center glass-card-3d border-b border-white/5 z-20 shrink-0 sticky top-0">
                     <div class="text-center">
                         <p class="text-xs font-bold text-emerald-400 tracking-wider" id="live-world-clock">00:00:00</p>
-                        <p class="text-[11px] text-slate-400 font-medium" id="current-date-header">Jumat, 25 Sep 2026</p>
+                        <p class="text-[11px] text-slate-400 font-medium" id="current-date-header">--</p>
                     </div>
                 </header>
 
@@ -79,10 +79,10 @@
 
                         <!-- Tombol Masukkan Kartu -->
                         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
-                            <button id="btn-masuk" onclick="prosesAbsen('masuk')" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-extrabold shadow-md shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                            <button id="btn-masuk" onclick="prosesAbsen('masuk')" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-black text-xs font-extrabold shadow-md shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                                 <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Kerja
                             </button>
-                            <button id="btn-pulang" onclick="prosesAbsen('pulang')" class="py-2.5 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                            <button id="btn-pulang" onclick="prosesAbsen('pulang')" class="py-2.5 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 disabled:opacity-40 disabled:cursor-not-allowed text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i> Absen Pulang
                             </button>
                         </div>
@@ -128,7 +128,7 @@
                             </span>
                             
                             <button onclick="bukaModalArsipMinggu()" class="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer">
-                                <i class="fa-solid fa-clock-history"></i> Rekap Mingguan
+                                <i class="fa-solid fa-clock-rotate-left"></i> Rekap Mingguan
                             </button>
                         </div>
 
@@ -177,10 +177,10 @@
                         <i class="fa-solid fa-triangle-exclamation"></i> Zona Berbahaya
                     </h4>
                     <p class="text-[11px] text-slate-400 leading-relaxed">
-                        Menghapus semua riwayat absen mingguan serta mengembalikan aplikasi ke pengaturan awal.
+                        Menghapus semua riwayat absen harian & mingguan. Akun Google Anda tetap terhubung.
                     </p>
                     <button onclick="bukaModalReset()" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-rotate-right"></i> Reset Semua Data
+                        <i class="fa-solid fa-rotate-right"></i> Reset Riwayat Absen
                     </button>
                 </div>
             </div>
@@ -232,9 +232,9 @@
                     <i class="fa-solid fa-trash-can"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-white">Reset Semua Data?</h3>
+                    <h3 class="font-bold text-base text-white">Reset Riwayat Absen?</h3>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Tindakan ini akan menghapus seluruh riwayat absen dan mengembalikan aplikasi ke pengaturan awal.
+                        Tindakan ini akan menghapus seluruh catatan absen. Akun Google Anda tetap terhubung dan tidak akan keluar.
                     </p>
                 </div>
                 <div class="flex space-x-2 pt-2">
@@ -248,7 +248,6 @@
 
     <!-- JAVASCRIPT UTAMA -->
     <script>
-        // CLIENT ID GOOGLE - Dapatkan dari Google Cloud Console
         const GOOGLE_CLIENT_ID = "229850114902-jgm3qj3f54r4vlb3s36edq0n7djvoqvi.apps.googleusercontent.com";
 
         function inisialisasiGoogleSDK() {
@@ -341,24 +340,30 @@
         }
 
         function kirimNotifikasi(judul, pesan) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(judul, {
-                    body: pesan,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921226.png',
-                    vibrate: [200, 100, 200]
-                });
+            try {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(judul, {
+                        body: pesan,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921226.png',
+                        vibrate: [200, 100, 200]
+                    });
+                }
+            } catch (e) {
+                console.log("Notifikasi diblokir:", e);
             }
         }
 
+        // PERBAIKAN: Mencegah mutasi objek Date secara langsung
         function dapatkanRentangMinggu(offsetMinggu = 0) {
             const daftarHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             let arr = [];
             let d = new Date();
-            d.setDate(d.getDate() + (offsetMinggu * 7));
             
             let day = d.getDay();
-            let diffToMonday = d.getDate() - day + (day === 0 ? -6 : 1);
-            let mondayObj = new Date(d.setDate(diffToMonday));
+            let diffToMonday = d.getDate() - (day === 0 ? 6 : day - 1) + (offsetMinggu * 7);
+            
+            // Dibuat aman tanpa me-mutate d
+            let mondayObj = new Date(d.getFullYear(), d.getMonth(), diffToMonday);
 
             for(let i = 0; i < 7; i++) {
                 let currentDayObj = new Date(mondayObj);
@@ -379,6 +384,8 @@
                     tanggal: tglStr,
                     jamMasuk: "",
                     jamPulang: "",
+                    timestampMasuk: null,
+                    timestampPulang: null,
                     detikAktif: 0,
                     statusAbsen: 'off'
                 });
@@ -404,7 +411,7 @@
             mulaiJamDunia();
             perbaruiTampilan();
             perbaruiTampilanProfil();
-            inisialisasiGoogleSDK();
+            setTimeout(inisialisasiGoogleSDK, 1000);
         });
 
         function renderTanggalHariIni() {
@@ -420,6 +427,22 @@
                 const jamSekarangStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 const elClock = document.getElementById('live-world-clock');
                 if(elClock) elClock.innerText = jamSekarangStr;
+
+                // UPDATE TIMER REAL-TIME JIKA STATUS SEDANG AKTIF
+                let rentangHariIni = dapatkanRentangMinggu(0);
+                let idxHari = getIndexHariIni();
+                let isoToday = rentangHariIni[idxHari].isoDate;
+                let dataHariIni = state.databaseHarian[isoToday];
+
+                if (dataHariIni && dataHariIni.statusAbsen === 'aktif' && dataHariIni.timestampMasuk) {
+                    let detikBerjalan = Math.floor((now.getTime() - dataHariIni.timestampMasuk) / 1000);
+                    let teksDurasi = formatDetikKeTeksPanjang(detikBerjalan);
+                    
+                    const elDurasi = document.getElementById('display-durasi-aktif');
+                    const elAnalisaHarian = document.getElementById('analisa-total-durasi-harian');
+                    if (elDurasi) elDurasi.innerText = teksDurasi;
+                    if (elAnalisaHarian) elAnalisaHarian.innerText = teksDurasi;
+                }
             };
             pembaruanJam();
             setInterval(pembaruanJam, 1000);
@@ -457,13 +480,16 @@
             let isoToday = itemHariIni.isoDate;
 
             let dataTersimpan = state.databaseHarian[isoToday] || itemHariIni;
-            let waktuSekarang = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            let now = new Date();
+            let waktuSekarang = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
             if (tipe === 'masuk') {
                 if (dataTersimpan.statusAbsen !== 'aktif') {
                     dataTersimpan.jamMasuk = waktuSekarang;
+                    dataTersimpan.timestampMasuk = now.getTime();
                     dataTersimpan.statusAbsen = 'aktif';
                     dataTersimpan.jamPulang = "";
+                    dataTersimpan.timestampPulang = null;
                     dataTersimpan.detikAktif = 0;
                     
                     kirimNotifikasi("Semangat Narik!", `Absen masuk tercatat pukul ${waktuSekarang}. Hati-hati di jalan!`);
@@ -471,18 +497,14 @@
             } else if (tipe === 'pulang') {
                 if (dataTersimpan.statusAbsen === 'aktif') {
                     dataTersimpan.jamPulang = waktuSekarang;
+                    dataTersimpan.timestampPulang = now.getTime();
                     dataTersimpan.statusAbsen = 'selesai';
 
-                    let [mulaiJam, mulaiMnt] = dataTersimpan.jamMasuk.split(/[:\.]/).map(Number);
-                    let [pulangJam, pulangMnt] = dataTersimpan.jamPulang.split(/[:\.]/).map(Number);
+                    // Hitung durasi presisi dari timestamp epoch
+                    let selisihDetik = Math.floor((dataTersimpan.timestampPulang - dataTersimpan.timestampMasuk) / 1000);
+                    if (selisihDetik < 0) selisihDetik = 0;
 
-                    let totalMntMulai = mulaiJam * 60 + mulaiMnt;
-                    let totalMntPulang = pulangJam * 60 + pulangMnt;
-                    
-                    let selisihMnt = totalMntPulang - totalMntMulai;
-                    if (selisihMnt < 0) selisihMnt += 24 * 60;
-
-                    dataTersimpan.detikAktif = selisihMnt * 60;
+                    dataTersimpan.detikAktif = selisihDetik;
                     
                     let durasiTeks = formatDetikKeTeksPanjang(dataTersimpan.detikAktif);
                     kirimNotifikasi("Selesai Bertugas!", `Absen pulang tercatat pukul ${waktuSekarang}. Total durasi hari ini: ${durasiTeks}. Selamat beristirahat!`);
@@ -636,22 +658,30 @@
             const punchIconBg = document.getElementById('punch-icon-bg');
             const punchIcon = document.getElementById('punch-icon');
             const infoSesi = document.getElementById('info-status-sesi');
+            const btnMasuk = document.getElementById('btn-masuk');
+            const btnPulang = document.getElementById('btn-pulang');
 
             if(dataHariIni.statusAbsen === 'aktif') {
                 punchIconBg.className = "w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-base transition-colors animate-pulse";
                 punchIcon.className = "fa-solid fa-id-card";
                 infoSesi.innerText = "Sedang Bertugas (Absen Masuk Tercatat)";
                 infoSesi.className = "text-[10px] text-emerald-400 font-bold";
+                btnMasuk.disabled = true;
+                btnPulang.disabled = false;
             } else if(dataHariIni.statusAbsen === 'selesai') {
                 punchIconBg.className = "w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 text-base transition-colors";
                 punchIcon.className = "fa-solid fa-clipboard-check";
                 infoSesi.innerText = "Selesai Kerja (Tercatat di Kartu Harian)";
                 infoSesi.className = "text-[10px] text-blue-400 font-bold";
+                btnMasuk.disabled = true;
+                btnPulang.disabled = true;
             } else {
                 punchIconBg.className = "w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-slate-400 text-base transition-colors";
                 punchIcon.className = "fa-solid fa-id-card";
                 infoSesi.innerText = "Belum absen masuk";
                 infoSesi.className = "text-[10px] text-slate-400 font-medium";
+                btnMasuk.disabled = false;
+                btnPulang.disabled = true;
             }
 
             renderCatatanSepekan();
@@ -663,22 +693,18 @@
         function tutupModalReset() {
             document.getElementById('modal-reset').classList.add('hidden');
         }
+
         function eksekusiResetData() {
-            localStorage.clear();
+            localStorage.removeItem('databaseHarian');
             state.databaseHarian = {};
             offsetMingguSaatIni = 0;
             
             tutupModalReset();
             perbaruiTampilan();
-            
-            // Reset Tampilan Profil
-            document.getElementById('user-name').innerText = "Masuk";
-            document.getElementById('user-email').innerText = "Masuk dengan Google, lebih seru!";
-            document.getElementById('user-avatar').innerHTML = `<i class="fa-solid fa-user text-xl text-slate-400"></i>`;
 
             pindahTab('dashboard');
             
-            kirimNotifikasi("Data Direset", "Semua riwayat dan data telah dikembalikan ke pengaturan awal.");
+            kirimNotifikasi("Riwayat Absen Direset", "Semua data jam kerja telah dihapus. Akun Google Anda tetap terhubung.");
         }
     </script>
 </body>

@@ -6,8 +6,6 @@
     <title>Catat Duit - Ojol 3D</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- GOOGLE IDENTITY SERVICES SDK -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
@@ -157,18 +155,23 @@
             <!-- 2. HALAMAN PROFIL / PENGATURAN -->
             <div id="page-profil" class="p-4 space-y-4 hidden animate-fade">
                 
-                <!-- HEADER PROFIL / KARTU MASUK AKUN GOOGLE -->
-                <div onclick="loginGoogle()" class="glass-card-3d rounded-2xl p-4 flex items-center gap-3.5 border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all">
-                    <div id="user-avatar" class="w-12 h-12 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
-                        <i class="fa-solid fa-user text-xl text-slate-400"></i>
+                <!-- KARTU PROFIL FIREBASE GOOGLE -->
+                <div class="glass-card-3d rounded-2xl p-4 space-y-3 border border-white/10">
+                    <div class="flex items-center gap-3.5">
+                        <img id="user-avatar" src="" alt="Avatar" class="w-12 h-12 rounded-full border border-emerald-500/30 hidden object-cover">
+                        <div id="user-avatar-placeholder" class="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-user text-xl text-emerald-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 id="user-name" class="text-sm font-bold text-white tracking-tight truncate">Pengemudi Ojol</h3>
+                            <p id="user-email" class="text-[11px] text-slate-400 font-medium truncate">Mode Akun Lokal</p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 id="user-name" class="text-sm font-bold text-white tracking-tight truncate">Masuk</h3>
-                        <p id="user-email" class="text-[11px] text-slate-400 font-medium truncate">Masuk dengan Google, lebih seru!</p>
-                    </div>
-                    <div class="text-slate-500 text-xs">
-                        <i class="fa-brands fa-google text-emerald-400 text-base"></i>
-                    </div>
+
+                    <!-- TOMBOL LOGIN / LOGOUT GOOGLE -->
+                    <button id="btn-auth-google" onclick="handleAuthGoogle()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20">
+                        <i class="fa-brands fa-google"></i> <span id="text-btn-auth">Masuk dengan Google</span>
+                    </button>
                 </div>
 
                 <!-- TOMBOL RESET DATA -->
@@ -177,7 +180,7 @@
                         <i class="fa-solid fa-triangle-exclamation"></i> Zona Berbahaya
                     </h4>
                     <p class="text-[11px] text-slate-400 leading-relaxed">
-                        Menghapus semua riwayat absen harian & mingguan. Akun Google Anda tetap terhubung.
+                        Menghapus semua riwayat absen harian & mingguan.
                     </p>
                     <button onclick="bukaModalReset()" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
                         <i class="fa-solid fa-rotate-right"></i> Reset Riwayat Absen
@@ -234,7 +237,7 @@
                 <div>
                     <h3 class="font-bold text-base text-white">Reset Riwayat Absen?</h3>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Tindakan ini akan menghapus seluruh catatan absen. Akun Google Anda tetap terhubung dan tidak akan keluar.
+                        Tindakan ini akan menghapus seluruh catatan absen.
                     </p>
                 </div>
                 <div class="flex space-x-2 pt-2">
@@ -246,11 +249,12 @@
 
     </div>
 
-    <!-- KONFIGURASI FIREBASE SDK TERINTEGRASI -->
+    <!-- KONFIGURASI FIREBASE SDK (DATABASE + AUTHENTICATION) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD-nWO6fyyqJ5cCwsd4cW3BMOGmllLI4UE",
@@ -264,20 +268,70 @@
         };
 
         try {
-            // Inisialisasi Firebase App
+            // Inisialisasi Firebase App & Database
             const app = initializeApp(firebaseConfig);
             const analytics = getAnalytics(app);
-
-            // Inisialisasi Realtime Database
             const db = getDatabase(app);
+            const auth = getAuth(app);
+            const provider = new GoogleAuthProvider();
+
             window.firebaseDB = db;
             window.dbRef = ref;
             window.dbSet = set;
             window.dbOnValue = onValue;
+            window.firebaseAuth = auth;
 
-            console.log("Firebase & Realtime Database berhasil diinisialisasi.");
+            // Memantau Status Login User secara Realtime
+            onAuthStateChanged(auth, (user) => {
+                const elName = document.getElementById('user-name');
+                const elEmail = document.getElementById('user-email');
+                const elAvatar = document.getElementById('user-avatar');
+                const elPlaceholder = document.getElementById('user-avatar-placeholder');
+                const elBtnText = document.getElementById('text-btn-auth');
+                const elBtn = document.getElementById('btn-auth-google');
 
-            // Update Tanda Visual Integrasi Berhasil
+                if (user) {
+                    // User Terautentikasi
+                    if (elName) elName.innerText = user.displayName || "Pengemudi Ojol";
+                    if (elEmail) elEmail.innerText = user.email || "";
+                    if (elAvatar && user.photoURL) {
+                        elAvatar.src = user.photoURL;
+                        elAvatar.classList.remove('hidden');
+                        if (elPlaceholder) elPlaceholder.classList.add('hidden');
+                    }
+                    if (elBtnText) elBtnText.innerText = "Keluar dari Akun";
+                    if (elBtn) elBtn.className = "w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer";
+                } else {
+                    // Mode Akun Lokal (Terganti Jika Logout)
+                    if (elName) elName.innerText = "Pengemudi Ojol";
+                    if (elEmail) elEmail.innerText = "Mode Akun Lokal";
+                    if (elAvatar) elAvatar.classList.add('hidden');
+                    if (elPlaceholder) elPlaceholder.classList.remove('hidden');
+                    if (elBtnText) elBtnText.innerText = "Masuk dengan Google";
+                    if (elBtn) elBtn.className = "w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20";
+                }
+            });
+
+            // Handler Tombol Login / Logout
+            window.handleAuthGoogle = async () => {
+                if (auth.currentUser) {
+                    try {
+                        await signOut(auth);
+                        alert("Berhasil keluar dari akun Google.");
+                    } catch (err) {
+                        console.error("Gagal Logout:", err);
+                    }
+                } else {
+                    try {
+                        await signInWithPopup(auth, provider);
+                    } catch (err) {
+                        console.error("Gagal Login Google:", err);
+                        alert("Gagal masuk dengan Google: " + err.message);
+                    }
+                }
+            };
+
+            // Status Indikator Firebase
             window.addEventListener('DOMContentLoaded', () => {
                 const elDot = document.getElementById('status-db-dot');
                 const elIcon = document.getElementById('status-db-icon');
@@ -292,102 +346,11 @@
             });
         } catch (error) {
             console.error("Gagal koneksi Firebase:", error);
-            const elDot = document.getElementById('status-db-dot');
-            const elText = document.getElementById('status-db-text');
-            if (elDot && elText) {
-                elDot.className = "w-2 h-2 rounded-full bg-rose-500";
-                elText.className = "text-[9px] font-bold text-rose-400";
-                elText.innerText = "DB Offline";
-            }
         }
     </script>
 
     <!-- JAVASCRIPT UTAMA -->
     <script>
-        const GOOGLE_CLIENT_ID = "229850114902-jgm3qj3f54r4vlb3s36edq0n7djvoqvi.apps.googleusercontent.com";
-
-        function inisialisasiGoogleSDK() {
-            if (window.google) {
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleCredentialResponse
-                });
-                console.log("Google Identity SDK siap.");
-            }
-        }
-
-        function loginGoogle() {
-            if (window.google) {
-                google.accounts.id.prompt((notification) => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        const client = google.accounts.oauth2.initTokenClient({
-                            client_id: GOOGLE_CLIENT_ID,
-                            scope: 'email profile',
-                            callback: (tokenResponse) => {
-                                if (tokenResponse.access_token) {
-                                    fetchUserInfo(tokenResponse.access_token);
-                                }
-                            },
-                        });
-                        client.requestAccessToken();
-                    }
-                });
-            } else {
-                alert("Google SDK belum siap.");
-            }
-        }
-
-        function handleCredentialResponse(response) {
-            const responsePayload = parseJwt(response.credential);
-            const user = {
-                nama: responsePayload.name,
-                email: responsePayload.email,
-                foto: responsePayload.picture
-            };
-            localStorage.setItem('userGoogle', JSON.stringify(user));
-            perbaruiTampilanProfil(user);
-        }
-
-        function fetchUserInfo(accessToken) {
-            fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${accessToken}` }
-            })
-            .then(res => res.json())
-            .then(data => {
-                const user = {
-                    nama: data.name,
-                    email: data.email,
-                    foto: data.picture
-                };
-                localStorage.setItem('userGoogle', JSON.stringify(user));
-                perbaruiTampilanProfil(user);
-            });
-        }
-
-        function parseJwt(token) {
-            var base64Url = token.split('.')[1];
-            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-        }
-
-        function perbaruiTampilanProfil(user) {
-            if (!user) {
-                user = JSON.parse(localStorage.getItem('userGoogle'));
-            }
-            if (user) {
-                const elName = document.getElementById('user-name');
-                const elEmail = document.getElementById('user-email');
-                const elAvatar = document.getElementById('user-avatar');
-
-                if (elName) elName.innerText = user.nama;
-                if (elEmail) elEmail.innerText = user.email;
-                if (elAvatar) elAvatar.innerHTML = `<img src="${user.foto}" class="w-full h-full object-cover rounded-full">`;
-            }
-        }
-
         function dapatkanRentangMinggu(offsetMinggu = 0) {
             const daftarHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             let arr = [];
@@ -442,8 +405,6 @@
             renderTanggalHariIni();
             mulaiJamDunia();
             perbaruiTampilan();
-            perbaruiTampilanProfil();
-            setTimeout(inisialisasiGoogleSDK, 1000);
         });
 
         function renderTanggalHariIni() {
@@ -541,8 +502,9 @@
 
             // SIMPAN DATA SECARA REALTIME KE FIREBASE
             if (window.firebaseDB) {
-                window.dbSet(window.dbRef(window.firebaseDB, 'absenHarian/' + isoToday), dataTersimpan)
-                    .then(() => console.log("Berhasil tersimpan di Firebase Console!"))
+                let userPath = window.firebaseAuth?.currentUser ? 'users/' + window.firebaseAuth.currentUser.uid + '/absenHarian/' : 'absenHarian/';
+                window.dbSet(window.dbRef(window.firebaseDB, userPath + isoToday), dataTersimpan)
+                    .then(() => console.log("Berhasil tersimpan di Firebase!"))
                     .catch((err) => console.error("Gagal simpan ke Firebase:", err));
             }
             

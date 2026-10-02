@@ -228,6 +228,45 @@
             </div>
         </div>
 
+        <!-- MODAL EDIT CATATAN HARIAN -->
+        <div id="modal-edit-absen" class="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden animate-fade">
+            <div class="glass-card-3d rounded-3xl p-5 space-y-4 w-full max-w-xs border border-emerald-500/30">
+                <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                    <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Edit Jam Kerja
+                    </h3>
+                    <button onclick="tutupModalEdit()" class="text-slate-400 hover:text-white text-base cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div id="edit-nama-hari" class="text-xs font-bold text-emerald-400">Senin, 01 Jan</div>
+
+                <form onsubmit="simpanEditAbsen(event)" class="space-y-3">
+                    <input type="hidden" id="edit-iso-date">
+                    
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Jam Masuk</label>
+                        <input type="time" id="edit-jam-masuk" class="w-full bg-[#161b22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Jam Pulang</label>
+                        <input type="time" id="edit-jam-pulang" class="w-full bg-[#161b22] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="flex space-x-2 pt-2">
+                        <button type="button" onclick="hapusCatatanHariIni()" class="py-2.5 px-3 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold hover:bg-rose-500/30 transition-all cursor-pointer">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold transition-all cursor-pointer">
+                            Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- MODAL KONFIRMASI RESET DATA -->
         <div id="modal-reset" class="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden animate-fade">
             <div class="glass-card-3d rounded-3xl p-5 space-y-4 w-full max-w-xs border border-rose-500/30 text-center">
@@ -249,11 +288,11 @@
 
     </div>
 
-    <!-- KONFIGURASI FIREBASE SDK (DATABASE + AUTHENTICATION) -->
+    <!-- KONFIGURASI FIREBASE SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -268,7 +307,6 @@
         };
 
         try {
-            // Inisialisasi Firebase App & Database
             const app = initializeApp(firebaseConfig);
             const analytics = getAnalytics(app);
             const db = getDatabase(app);
@@ -278,10 +316,10 @@
             window.firebaseDB = db;
             window.dbRef = ref;
             window.dbSet = set;
+            window.dbRemove = remove;
             window.dbOnValue = onValue;
             window.firebaseAuth = auth;
 
-            // Memantau Status Login User secara Realtime
             onAuthStateChanged(auth, (user) => {
                 const elName = document.getElementById('user-name');
                 const elEmail = document.getElementById('user-email');
@@ -291,7 +329,6 @@
                 const elBtn = document.getElementById('btn-auth-google');
 
                 if (user) {
-                    // User Terautentikasi
                     if (elName) elName.innerText = user.displayName || "Pengemudi Ojol";
                     if (elEmail) elEmail.innerText = user.email || "";
                     if (elAvatar && user.photoURL) {
@@ -302,7 +339,6 @@
                     if (elBtnText) elBtnText.innerText = "Keluar dari Akun";
                     if (elBtn) elBtn.className = "w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer";
                 } else {
-                    // Mode Akun Lokal (Terganti Jika Logout)
                     if (elName) elName.innerText = "Pengemudi Ojol";
                     if (elEmail) elEmail.innerText = "Mode Akun Lokal";
                     if (elAvatar) elAvatar.classList.add('hidden');
@@ -312,7 +348,6 @@
                 }
             });
 
-            // Handler Tombol Login / Logout
             window.handleAuthGoogle = async () => {
                 if (auth.currentUser) {
                     try {
@@ -331,7 +366,6 @@
                 }
             };
 
-            // Status Indikator Firebase
             window.addEventListener('DOMContentLoaded', () => {
                 const elDot = document.getElementById('status-db-dot');
                 const elIcon = document.getElementById('status-db-icon');
@@ -500,16 +534,19 @@
             state.databaseHarian[isoToday] = dataTersimpan;
             localStorage.setItem('databaseHarian', JSON.stringify(state.databaseHarian));
 
-            // SIMPAN DATA SECARA REALTIME KE FIREBASE
-            if (window.firebaseDB) {
-                let userPath = window.firebaseAuth?.currentUser ? 'users/' + window.firebaseAuth.currentUser.uid + '/absenHarian/' : 'absenHarian/';
-                window.dbSet(window.dbRef(window.firebaseDB, userPath + isoToday), dataTersimpan)
-                    .then(() => console.log("Berhasil tersimpan di Firebase!"))
-                    .catch((err) => console.error("Gagal simpan ke Firebase:", err));
-            }
+            simpanKeFirebase(isoToday, dataTersimpan);
             
             offsetMingguSaatIni = 0;
             perbaruiTampilan();
+        }
+
+        function simpanKeFirebase(isoDate, data) {
+            if (window.firebaseDB) {
+                let userPath = window.firebaseAuth?.currentUser ? 'users/' + window.firebaseAuth.currentUser.uid + '/absenHarian/' : 'absenHarian/';
+                window.dbSet(window.dbRef(window.firebaseDB, userPath + isoDate), data)
+                    .then(() => console.log("Berhasil tersimpan di Firebase!"))
+                    .catch((err) => console.error("Gagal simpan ke Firebase:", err));
+            }
         }
 
         function formatDetikKeTeksPanjang(totalDetik) {
@@ -571,13 +608,116 @@
                                 <div class="mt-0.5">${badgeStatus}</div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span class="text-[10px] text-slate-400 block">Durasi</span>
-                            <span class="font-bold text-white">${formatDetikKeTeksPanjang(dataTersimpan.detikAktif || 0)}</span>
+                        <div class="flex items-center gap-2">
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block">Durasi</span>
+                                <span class="font-bold text-white">${formatDetikKeTeksPanjang(dataTersimpan.detikAktif || 0)}</span>
+                            </div>
+                            <!-- TOMBOL EDIT -->
+                            <button onclick="bukaModalEdit('${item.isoDate}', '${item.hariLengkap}, ${item.tanggal}')" class="w-7 h-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition-all cursor-pointer ml-1">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
+                            </button>
                         </div>
                     </div>
                 `;
             });
+        }
+
+        // FUNGSI KHUSUS EDIT CATATAN HARIAN
+        function bukaModalEdit(isoDate, labelHari) {
+            const data = state.databaseHarian[isoDate] || {};
+            
+            document.getElementById('edit-iso-date').value = isoDate;
+            document.getElementById('edit-nama-hari').innerText = labelHari;
+            
+            // Format time input HH:MM
+            document.getElementById('edit-jam-masuk').value = data.jamMasuk ? convertTo24h(data.jamMasuk) : "";
+            document.getElementById('edit-jam-pulang').value = data.jamPulang ? convertTo24h(data.jamPulang) : "";
+
+            document.getElementById('modal-edit-absen').classList.remove('hidden');
+        }
+
+        function tutupModalEdit() {
+            document.getElementById('modal-edit-absen').classList.add('hidden');
+        }
+
+        function convertTo24h(timeStr) {
+            if (!timeStr) return "";
+            let parts = timeStr.split(':');
+            if (parts.length >= 2) {
+                let h = parts[0].padStart(2, '0');
+                let m = parts[1].substr(0, 2).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return timeStr;
+        }
+
+        function simpanEditAbsen(event) {
+            event.preventDefault();
+            const isoDate = document.getElementById('edit-iso-date').value;
+            const jamMasukVal = document.getElementById('edit-jam-masuk').value;
+            const jamPulangVal = document.getElementById('edit-jam-pulang').value;
+
+            if (!jamMasukVal && !jamPulangVal) {
+                hapusCatatanHariIni();
+                return;
+            }
+
+            let statusAbsen = 'selesai';
+            let detikAktif = 0;
+            let tsMasuk = null;
+            let tsPulang = null;
+
+            if (jamMasukVal && jamPulangVal) {
+                const dateParts = isoDate.split('-');
+                const dateMasuk = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], ...jamMasukVal.split(':'));
+                const datePulang = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], ...jamPulangVal.split(':'));
+
+                tsMasuk = dateMasuk.getTime();
+                tsPulang = datePulang.getTime();
+
+                let diff = Math.floor((tsPulang - tsMasuk) / 1000);
+                if (diff < 0) diff += 86400; // Jika jam pulang lewat tengah malam
+                detikAktif = diff;
+                statusAbsen = 'selesai';
+            } else if (jamMasukVal && !jamPulangVal) {
+                const dateParts = isoDate.split('-');
+                const dateMasuk = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], ...jamMasukVal.split(':'));
+                tsMasuk = dateMasuk.getTime();
+                statusAbsen = 'aktif';
+            }
+
+            const dataUpdated = {
+                isoDate: isoDate,
+                jamMasuk: jamMasukVal || "",
+                jamPulang: jamPulangVal || "",
+                timestampMasuk: tsMasuk,
+                timestampPulang: tsPulang,
+                detikAktif: detikAktif,
+                statusAbsen: statusAbsen
+            };
+
+            state.databaseHarian[isoDate] = dataUpdated;
+            localStorage.setItem('databaseHarian', JSON.stringify(state.databaseHarian));
+            simpanKeFirebase(isoDate, dataUpdated);
+
+            tutupModalEdit();
+            perbaruiTampilan();
+        }
+
+        function hapusCatatanHariIni() {
+            const isoDate = document.getElementById('edit-iso-date').value;
+            if (state.databaseHarian[isoDate]) {
+                delete state.databaseHarian[isoDate];
+                localStorage.setItem('databaseHarian', JSON.stringify(state.databaseHarian));
+
+                if (window.firebaseDB) {
+                    let userPath = window.firebaseAuth?.currentUser ? 'users/' + window.firebaseAuth.currentUser.uid + '/absenHarian/' : 'absenHarian/';
+                    window.dbRemove(window.dbRef(window.firebaseDB, userPath + isoDate));
+                }
+            }
+            tutupModalEdit();
+            perbaruiTampilan();
         }
 
         function bukaModalArsipMinggu() {
